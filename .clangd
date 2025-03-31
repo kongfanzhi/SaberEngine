@@ -1,0 +1,23 @@
+CompileFlags:
+  Add: 
+    - "-Wno-unused-parameter"
+    - "-Wno-unused-variable"
+    - "-Wno-unused-function"
+    - "-Wno-unused-includes"
+    - "-std=c++17"
+    - "-x"
+    - "c++"
+Diagnostics:
+  ClangTidy:
+    Remove: 
+      - "modernize-use-using"
+      - "readability-identifier-naming"
+      - "llvm-include-order"
+      - "llvm-header-guard"
+      - "llvm-namespace-comment"
+      - "llvm-qualified-auto"
+      - "llvm-else-after-return"
+      - "llvm-google-*"
+      - "llvm-modernize-*"
+      - "llvm-performance-*"
+      - "llvm-readability-*" 
