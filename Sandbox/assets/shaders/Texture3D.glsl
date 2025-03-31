@@ -42,7 +42,20 @@ uniform sampler2D u_Textures[32];
 
 void main()
 {
+    vec4 texColor = v_Color;
+
+    // 方案1：添加范围检查
+    // if (v_TexIndex >= 0 && v_TexIndex < 33) // 假设最多32个纹理
+    {
+        texColor *= texture(u_Textures[int(v_TexIndex)], v_TexCoord * v_TilingFactor);
+    }
+
+    color = texColor;
+}
+
+/* void main()
+{
     // 简化着色器逻辑，直接使用白色纹理
     vec4 texColor = texture(u_Textures[0], v_TexCoord * v_TilingFactor);
     color = texColor * v_Color;
-}
+} */

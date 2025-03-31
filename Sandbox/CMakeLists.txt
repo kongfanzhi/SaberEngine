@@ -14,5 +14,5 @@ target_link_libraries(Sandbox PRIVATE SaberEngine)
 add_custom_command(TARGET Sandbox POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
     ${CMAKE_SOURCE_DIR}/Sandbox/assets
-    ${CMAKE_BINARY_DIR}/bin/assets/shaders)
+    ${CMAKE_BINARY_DIR}/bin/assets)
 
