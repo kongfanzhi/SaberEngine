@@ -4,10 +4,16 @@ CompileFlags:
     - "-Wno-unused-variable"
     - "-Wno-unused-function"
     - "-Wno-unused-includes"
+    - "-Wno-unused-macros"
+    - "-Wno-include-cleaner"
     - "-std=c++17"
     - "-x"
     - "c++"
 Diagnostics:
+  Suppress:
+    - "unused-includes"
+    - "unused-include"
+    - "include-what-you-use"
   ClangTidy:
     Remove: 
       - "modernize-use-using"
@@ -20,4 +26,6 @@ Diagnostics:
       - "llvm-google-*"
       - "llvm-modernize-*"
       - "llvm-performance-*"
-      - "llvm-readability-*" 
+      - "llvm-readability-*"
+      - "misc-unused-using-decls"
+      - "misc-include-cleaner" 
