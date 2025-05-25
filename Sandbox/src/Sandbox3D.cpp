@@ -6,6 +6,7 @@
 #include "Platform/OpenGl/OpenGLShader.h"
 #include "imgui/imgui.h"
 
+#include "Saber/Renderer/LightingExample.h"
 #include "Saber/Renderer/Renderer3D.h"
 
 #include <filesystem>
@@ -24,6 +25,7 @@ void Sandbox3D::OnAttach()
 
     // 初始化3D渲染器
     Saber::Renderer3D::Init();
+    Saber::LightingExample::SetupSceneLights();
 
     m_CheckerboardTexture = Saber::Texture2D::Create("assets/textures/Checkerboard.png");
 }
@@ -55,11 +57,13 @@ void Sandbox3D::OnUpdate(Saber::Timestep ts)
         SB_PROFILE_SCOPE("Renderer Draw");
         // 开始场景渲染
         // 使用相机的视图矩阵作为变换矩阵，不使用逆矩阵
-        Saber::Renderer3D::BeginScene(m_CameraController.GetCamera(), m_CameraController.GetCamera().GetViewMatrix());
-
+        // Saber::Renderer3D::BeginScene(m_CameraController.GetCamera(),
+        // m_CameraController.GetCamera().GetViewMatrix());
+        Saber::LightingExample::RenderLitCubes(m_CameraController.GetCamera(),
+                                               m_CameraController.GetCamera().GetViewMatrix());
         // 绘制一些立方体 - 调整z坐标使其在裁剪平面内
 
-        // 1. 使用颜色绘制立方体
+        /* // 1. 使用颜色绘制立方体
         Saber::Renderer3D::DrawCube({0.0f, 0.0f, -5.0f}, {1.0f, 1.0f, 1.0f}, {1.0f, 0.0f, 0.0f, 1.0f}); // 红色立方体
 
         // 2. 使用纹理绘制立方体
@@ -74,7 +78,7 @@ void Sandbox3D::OnUpdate(Saber::Timestep ts)
                                            m_CheckerboardTexture, 2.0f);
 
         // 结束场景渲染
-        Saber::Renderer3D::EndScene();
+        Saber::Renderer3D::EndScene(); */
     }
 }
 

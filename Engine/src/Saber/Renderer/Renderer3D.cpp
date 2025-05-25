@@ -2,6 +2,7 @@
 #include "Saber/pch.h"
 
 #include "Camera.h"
+#include "Light.h"
 #include "RenderCommand.h"
 #include "Shader.h"
 #include "VertexArray.h"
@@ -18,6 +19,7 @@ struct CubeVertex
     glm::vec2 TexCoord;
     float TexIndex;
     float TilingFactor;
+    glm::vec3 Normal;
 };
 
 struct Renderer3DData
@@ -30,7 +32,10 @@ struct Renderer3DData
     Ref<VertexArray> CubeVertexArray;
     Ref<VertexBuffer> CubeVertexBuffer;
     Ref<Shader> TextureShader;
+    Ref<Shader> LightingShader;
     Ref<Texture2D> WhiteTexture;
+
+    bool LightingEnabled = false;
 
     uint32_t CubeIndexCount = 0;
     CubeVertex *CubeVertexBufferBase = nullptr;
@@ -46,6 +51,24 @@ struct Renderer3DData
 };
 
 static Renderer3DData s_Data;
+
+// 计算立方体面的法线
+static glm::vec3 GetCubeFaceNormal(int vertexIndex)
+{
+    // 根据顶点索引返回对应面的法线
+    // 立方体的8个顶点对应的法线（每个顶点可能属于多个面，这里简化处理）
+    static const glm::vec3 normals[8] = {
+        glm::vec3(-0.577f, -0.577f, 0.577f),  // 左下前 (0) - 前面+左面+底面的平均
+        glm::vec3(0.577f, -0.577f, 0.577f),   // 右下前 (1) - 前面+右面+底面的平均
+        glm::vec3(0.577f, 0.577f, 0.577f),    // 右上前 (2) - 前面+右面+顶面的平均
+        glm::vec3(-0.577f, 0.577f, 0.577f),   // 左上前 (3) - 前面+左面+顶面的平均
+        glm::vec3(-0.577f, -0.577f, -0.577f), // 左下后 (4) - 后面+左面+底面的平均
+        glm::vec3(0.577f, -0.577f, -0.577f),  // 右下后 (5) - 后面+右面+底面的平均
+        glm::vec3(0.577f, 0.577f, -0.577f),   // 右上后 (6) - 后面+右面+顶面的平均
+        glm::vec3(-0.577f, 0.577f, -0.577f),  // 左上后 (7) - 后面+左面+顶面的平均
+    };
+    return normals[vertexIndex];
+}
 
 void Renderer3D::Init()
 {
@@ -69,7 +92,8 @@ void Renderer3D::Init()
                                         {ShaderDataType::Float4, "a_Color"},
                                         {ShaderDataType::Float2, "a_TexCoord"},
                                         {ShaderDataType::Float, "a_TexIndex"},
-                                        {ShaderDataType::Float, "a_TilingFactor"}});
+                                        {ShaderDataType::Float, "a_TilingFactor"},
+                                        {ShaderDataType::Float3, "a_Normal"}});
     s_Data.CubeVertexArray->AddVertexBuffer(s_Data.CubeVertexBuffer);
 
     s_Data.CubeVertexBufferBase = new CubeVertex[s_Data.MaxVertices];
@@ -143,11 +167,15 @@ void Renderer3D::Init()
     for (uint32_t i = 0; i < s_Data.MaxTextureSlots; i++)
         samplers[i] = i;
 
-    // 使用相对路径直接加载着色器
-    // std::string shaderPath = (std::filesystem::current_path() / "assets" / "shaders" / "Texture3D.glsl").string();
+    // 加载着色器
     s_Data.TextureShader = Shader::Create("assets/shaders/Texture3D.glsl");
+    s_Data.LightingShader = Shader::Create("assets/shaders/BlinnPhong3D.glsl");
+
     s_Data.TextureShader->Bind();
     s_Data.TextureShader->SetIntArray("u_Textures", samplers, s_Data.MaxTextureSlots);
+
+    s_Data.LightingShader->Bind();
+    s_Data.LightingShader->SetIntArray("u_Textures", samplers, s_Data.MaxTextureSlots);
 
     // 设置所有纹理槽为白色纹理
     s_Data.TextureSlots[0] = s_Data.WhiteTexture;
@@ -236,6 +264,7 @@ void Renderer3D::DrawCube(const glm::vec3 &position, const glm::vec3 &size, cons
 
         s_Data.CubeVertexBufferPtr->TexIndex = textureIndex;
         s_Data.CubeVertexBufferPtr->TilingFactor = tilingFactor;
+        s_Data.CubeVertexBufferPtr->Normal = GetCubeFaceNormal(i);
         s_Data.CubeVertexBufferPtr++;
     }
 
@@ -281,6 +310,7 @@ void Renderer3D::DrawCube(const glm::vec3 &position, const glm::vec3 &size, cons
 
         s_Data.CubeVertexBufferPtr->TexIndex = textureIndex;
         s_Data.CubeVertexBufferPtr->TilingFactor = tilingFactor;
+        s_Data.CubeVertexBufferPtr->Normal = GetCubeFaceNormal(i);
         s_Data.CubeVertexBufferPtr++;
     }
 
@@ -319,6 +349,7 @@ void Renderer3D::DrawRotatedCube(const glm::vec3 &position, const glm::vec3 &siz
 
         s_Data.CubeVertexBufferPtr->TexIndex = textureIndex;
         s_Data.CubeVertexBufferPtr->TilingFactor = tilingFactor;
+        s_Data.CubeVertexBufferPtr->Normal = GetCubeFaceNormal(i);
         s_Data.CubeVertexBufferPtr++;
     }
 
@@ -371,6 +402,7 @@ void Renderer3D::DrawRotatedCube(const glm::vec3 &position, const glm::vec3 &siz
 
         s_Data.CubeVertexBufferPtr->TexIndex = textureIndex;
         s_Data.CubeVertexBufferPtr->TilingFactor = tilingFactor;
+        s_Data.CubeVertexBufferPtr->Normal = GetCubeFaceNormal(i);
         s_Data.CubeVertexBufferPtr++;
     }
 
@@ -391,4 +423,69 @@ void Renderer3D::FlushAndReset()
 
     s_Data.TextureSlotIndex = 1;
 }
+
+void Renderer3D::BeginSceneWithLighting(const Camera &camera, const glm::mat4 &transform, const glm::vec3 &viewPos)
+{
+    // 创建视图投影矩阵
+    glm::mat4 viewProj = camera.GetProjection() * transform;
+
+    // 确保OpenGL深度测试正确配置
+    if (!glIsEnabled(GL_DEPTH_TEST))
+    {
+        glEnable(GL_DEPTH_TEST);
+    }
+
+    glDepthFunc(GL_LESS);
+    glDepthMask(GL_TRUE);
+
+    // 使用光照着色器
+    s_Data.LightingShader->Bind();
+    s_Data.LightingShader->SetMat4("u_ViewProjection", viewProj);
+    s_Data.LightingShader->SetFloat3("u_ViewPos", viewPos);
+
+    // 设置单位模型矩阵（每个立方体会有自己的变换）
+    glm::mat4 identityMatrix = glm::mat4(1.0f);
+    s_Data.LightingShader->SetMat4("u_Model", identityMatrix);
+    s_Data.LightingShader->SetMat4("u_NormalMatrix", identityMatrix);
+
+    // 设置光照参数
+    const auto &dirLight = LightManager::GetDirectionalLight();
+    s_Data.LightingShader->SetFloat3("u_DirLight.direction", dirLight.Direction);
+    s_Data.LightingShader->SetFloat3("u_DirLight.ambient", dirLight.Ambient);
+    s_Data.LightingShader->SetFloat3("u_DirLight.diffuse", dirLight.Diffuse);
+    s_Data.LightingShader->SetFloat3("u_DirLight.specular", dirLight.Specular);
+
+    // 设置点光源
+    const auto &pointLights = LightManager::GetPointLights();
+    int numPointLights = std::min((int)pointLights.size(), (int)LightManager::MaxPointLights);
+    s_Data.LightingShader->SetInt("u_NumPointLights", numPointLights);
+
+    for (int i = 0; i < numPointLights; i++)
+    {
+        std::string base = "u_PointLights[" + std::to_string(i) + "]";
+        s_Data.LightingShader->SetFloat3(base + ".position", pointLights[i].Position);
+        s_Data.LightingShader->SetFloat3(base + ".ambient", pointLights[i].Ambient);
+        s_Data.LightingShader->SetFloat3(base + ".diffuse", pointLights[i].Diffuse);
+        s_Data.LightingShader->SetFloat3(base + ".specular", pointLights[i].Specular);
+        s_Data.LightingShader->SetFloat(base + ".constant", pointLights[i].Constant);
+        s_Data.LightingShader->SetFloat(base + ".linear", pointLights[i].Linear);
+        s_Data.LightingShader->SetFloat(base + ".quadratic", pointLights[i].Quadratic);
+    }
+
+    // 设置材质参数
+    const auto &material = LightManager::GetMaterial();
+    s_Data.LightingShader->SetFloat3("u_MaterialAmbient", material.Ambient);
+    s_Data.LightingShader->SetFloat3("u_MaterialDiffuse", material.Diffuse);
+    s_Data.LightingShader->SetFloat3("u_MaterialSpecular", material.Specular);
+    s_Data.LightingShader->SetFloat("u_Shininess", material.Shininess);
+
+    s_Data.LightingEnabled = true;
+    s_Data.CubeIndexCount = 0;
+    s_Data.CubeVertexBufferPtr = s_Data.CubeVertexBufferBase;
+    s_Data.TextureSlotIndex = 1;
+}
+
+void Renderer3D::EnableLighting(bool enable) { s_Data.LightingEnabled = enable; }
+
+bool Renderer3D::IsLightingEnabled() { return s_Data.LightingEnabled; }
 } // namespace Saber

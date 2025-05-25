@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Light.h"
 #include "Shader.h"
 #include "Texture.h"
 #include "glm/glm.hpp"
@@ -14,8 +15,14 @@ public:
     static void Init();
     static void Shutdown();
     static void BeginScene(const Camera &camera, const glm::mat4 &transform = glm::mat4(1.0f));
+    static void BeginSceneWithLighting(const Camera &camera, const glm::mat4 &transform = glm::mat4(1.0f),
+                                       const glm::vec3 &viewPos = glm::vec3(0.0f));
     static void EndScene();
     static void Flush();
+
+    // 光照渲染模式切换
+    static void EnableLighting(bool enable = true);
+    static bool IsLightingEnabled();
 
     // 基本立方体绘制
     static void DrawCube(const glm::vec3 &position, const glm::vec3 &size, const glm::vec4 &color);
